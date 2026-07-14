@@ -8,6 +8,10 @@
 
         public bool IsGroup { get; set; }
 
+        public Guid OwnerId { get; set; }
+
+        public User Owner { get; set; } = null!;
+
         public DateTime CreatedAt { get; set; }
 
         public ICollection<ChatMember> Members { get; set; } = [];
