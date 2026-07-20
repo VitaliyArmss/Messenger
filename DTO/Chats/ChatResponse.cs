@@ -11,5 +11,9 @@
         public int MembersCount { get; set; }
 
         public DateTime CreatedAt { get; set; }
+
+        public string LastMessageText { get; set; }
+
+        public DateTime? LastMessageAt { get; set; }
     }
 }

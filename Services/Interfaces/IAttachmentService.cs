@@ -6,6 +6,8 @@ namespace Messenger.Services
     {
         Task<AttachmentResponse> UploadAsync(IFormFile file);
 
+        Task<(Stream Stream, string ContentType, string FileName)> DownloadAsync(Guid id);
+
         Task DeleteAsync(Guid attachmentId);
     }
 }

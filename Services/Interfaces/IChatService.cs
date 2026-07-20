@@ -10,7 +10,7 @@ namespace Messenger.Services
 
         Task<ChatResponse> CreateAsync(Guid creatorId, CreateChatRequest request);
 
-        Task DeleteAsync(Guid chatId);
+        Task DeleteAsync(Guid userId, Guid chatId);
 
         Task AddMemberAsync(Guid chatId, AddChatMemberRequest request);
 

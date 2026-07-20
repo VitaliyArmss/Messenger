@@ -1,32 +1,110 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// Controllers/MessagesController.cs
+using Messenger.DTO.Chats;
+using Messenger.DTO.Messages;
+using Messenger.Entities;
+using Messenger.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-namespace Messenger.Controllers;
-
-[ApiController]
-[Route("api/messages")]
-public class MessagesController : ControllerBase
+namespace Messenger.Controllers
 {
-    [HttpGet("chat/{chatId:guid}")]
-    public IActionResult GetMessages(Guid chatId)
+    [ApiController]
+    [Route("api/messages")]
+    [Authorize]
+    public class MessagesController : ControllerBase
     {
-        throw new NotImplementedException();
-    }
+        private readonly IMessageService _messageService;
+        private readonly ILogger<MessagesController> _logger;
 
-    [HttpPost]
-    public IActionResult SendMessage()
-    {
-        throw new NotImplementedException();
-    }
+        public MessagesController(IMessageService messageService, ILogger<MessagesController> logger)
+        {
+            _messageService = messageService;
+            _logger = logger;
+        }
 
-    [HttpPut("{id:guid}")]
-    public IActionResult EditMessage(Guid id)
-    {
-        throw new NotImplementedException();
-    }
+        private Guid GetUserId() =>
+            Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
-    [HttpDelete("{id:guid}")]
-    public IActionResult DeleteMessage(Guid id)
-    {
-        throw new NotImplementedException();
+        [HttpGet("chat/{chatId:guid}")]
+        public async Task<IActionResult> GetMessages(Guid chatId)
+        {
+            try
+            {
+                var messages = await _messageService.GetMessagesAsync(chatId);
+                return Ok(messages);
+            }
+            catch (Exception ex) when (ex.Message.Contains("не найден"))
+            {
+                return NotFound(new { Message = "Чат не найден" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка получения сообщений чата {ChatId}", chatId);
+                return StatusCode(500, new { Message = "Не удалось получить сообщения" });
+            }
+        }
+
+        [HttpPost("chat/{chatId:guid}")]
+        public async Task<IActionResult> SendMessage(Guid chatId, [FromBody] SendMessageRequest request)
+        {
+            try
+            {
+                var senderId = GetUserId();
+                var message = await _messageService.SendAsync(chatId, senderId, request);
+                return CreatedAtAction(nameof(GetMessages), new { chatId }, message);
+            }
+            catch (Exception ex) when (ex.Message.Contains("не найден"))
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (Exception ex) when (ex.Message.Contains("не состоит в чате"))
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка отправки сообщения в чат {ChatId}", chatId);
+                return StatusCode(500, new { Message = "Не удалось отправить сообщение" });
+            }
+        }
+
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> EditMessage(Guid id, [FromBody] EditMessageRequest request)
+        {
+            try
+            {
+                var message = await _messageService.EditAsync(id, request);
+                return Ok(message);
+            }
+            catch (Exception ex) when (ex.Message.Contains("не найдено"))
+            {
+                return NotFound(new { Message = "Сообщение не найдено" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка редактирования сообщения {MessageId}", id);
+                return StatusCode(500, new { Message = "Не удалось отредактировать сообщение" });
+            }
+        }
+
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> DeleteMessage(Guid id)
+        {
+            try
+            {
+                await _messageService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex) when (ex.Message.Contains("не найдено"))
+            {
+                return NotFound(new { Message = "Сообщение не найдено" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка удаления сообщения {MessageId}", id);
+                return StatusCode(500, new { Message = "Не удалось удалить сообщение" });
+            }
+        }
     }
 }

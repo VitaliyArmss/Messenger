@@ -18,6 +18,12 @@ public class AppDbContext : DbContext
                 x.UserId,
                 x.ChatId
             });
+        modelBuilder.Entity<MessageReadStatus>()
+            .HasKey(x => new
+            {
+                x.MessageId,
+                x.UserId
+            });
     }
 
     public DbSet<User> Users { get; set; }
@@ -26,5 +32,11 @@ public class AppDbContext : DbContext
 
     public DbSet<Message> Messages { get; set; }
 
+    public DbSet<MessageReadStatus> MessagesReadStatuses { get; set; }
+
     public DbSet<ChatMember> ChatMembers { get; set; }
+
+    public DbSet<Attachment> Attachments { get; set; }
+
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
 }

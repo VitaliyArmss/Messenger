@@ -8,7 +8,7 @@ namespace Messenger.Services
 
         Task<UserResponse?> GetByIdAsync(Guid id);
 
-        Task<IEnumerable<UserResponse>> SearchAsync(string? query);
+        Task<IEnumerable<UserResponse>> SearchAsync(string? query, int page, int pagesize);
 
         Task<UserResponse> UpdateAsync(Guid userId, UpdateUserRequest request);
     }

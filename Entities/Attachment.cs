@@ -4,9 +4,9 @@
     {
         public Guid Id { get; set; }
 
-        public Guid MessageId { get; set; }
+        public Guid? MessageId { get; set; }
 
-        public Message Message { get; set; } = null!;
+        public Message? Message { get; set; } = null!;
 
         public string Url { get; set; } = "";
 

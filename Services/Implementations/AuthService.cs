@@ -31,7 +31,8 @@ namespace Messenger.Services
             var user = new User
             {
                 Id = Guid.NewGuid(),
-                Username = request.Username,
+                Name = request.Name,
+                UserName = request.UserName,
                 Email = request.Email,
                 CreatedAt = DateTime.UtcNow
             };
@@ -43,6 +44,7 @@ namespace Messenger.Services
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
+            var refreshToken = await CreateRefreshTokenAsync(user);
 
             // Сгенерировать JWT
             JwtResult accessToken = _jwtService.GenerateToken(user);
@@ -63,7 +65,7 @@ namespace Messenger.Services
 
             if (user == null)
             {
-                throw new Exception("Пользователь не найден");
+                throw new UnauthorizedAccessException("Пользователь не найден");
             }
 
             // Проверить пароль
@@ -74,8 +76,10 @@ namespace Messenger.Services
 
             if (result == PasswordVerificationResult.Failed)
             {
-                throw new Exception("Неверный пароль");
+                throw new UnauthorizedAccessException("Неверный пароль");
             }
+
+            var refreshToken = await CreateRefreshTokenAsync(user);
 
             // Сгенерировать JWT
             JwtResult accessToken = _jwtService.GenerateToken(user);
@@ -91,25 +95,61 @@ namespace Messenger.Services
 
         public async Task<AuthResponse> RefreshAsync(RefreshRequest request)
         {
-            // TODO:
-            // Проверить Refresh Token
-            // Выдать новую пару токенов
+            var storedToken = await _db.RefreshTokens
+                .Include(rt => rt.User)
+                .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken);
 
-            return await Task.FromResult(new AuthResponse
+            if (storedToken == null)
+                throw new UnauthorizedAccessException("Неверный refresh-токен");
+
+            if (storedToken.IsRevoked)
+                throw new UnauthorizedAccessException("Refresh-токен отозван");
+
+            if (storedToken.ExpiresAt < DateTime.UtcNow)
+                throw new UnauthorizedAccessException("Refresh-токен истёк");
+
+            var user = storedToken.User;
+
+             _db.RefreshTokens.Remove(storedToken);
+
+            var newRefreshToken = await CreateRefreshTokenAsync(user);
+
+            var accessToken = _jwtService.GenerateToken(user);
+
+            return new AuthResponse
             {
-                AccessToken = Guid.NewGuid().ToString(),
-                RefreshToken = Guid.NewGuid().ToString(),
-                ExpiresAt = DateTime.UtcNow.AddHours(1)
-            });
+                AccessToken = accessToken.Token,
+                RefreshToken = newRefreshToken.Token,
+                ExpiresAt = accessToken.ExpiresAt
+            };
         }
 
         public async Task LogoutAsync(Guid userId)
         {
-            // TODO:
-            // Удалить Refresh Token из БД
-            // или добавить JWT в blacklist
+            var tokens = await _db.RefreshTokens
+                        .Where(rt => rt.UserId == userId && !rt.IsRevoked)
+                        .ToListAsync();
 
-            await Task.CompletedTask;
+            _db.RefreshTokens.RemoveRange(tokens);
+            await _db.SaveChangesAsync();
+        }
+
+        private async Task<RefreshToken> CreateRefreshTokenAsync(User user)
+        {
+            var token = new RefreshToken
+            {
+                Id = Guid.NewGuid(),
+                Token = _jwtService.GenerateRefreshToken(),
+                UserId = user.Id,
+                User = user,
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow,
+                IsRevoked = false
+            };
+
+            _db.RefreshTokens.Add(token);
+            await _db.SaveChangesAsync();
+            return token;
         }
     }
 }

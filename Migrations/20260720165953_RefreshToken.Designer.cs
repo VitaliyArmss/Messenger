@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Messenger.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260709093935_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260720165953_RefreshToken")]
+    partial class RefreshToken
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -39,7 +39,7 @@ namespace Messenger.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("MessageId")
+                    b.Property<Guid?>("MessageId")
                         .HasColumnType("uuid");
 
                     b.Property<long>("Size")
@@ -53,7 +53,7 @@ namespace Messenger.Migrations
 
                     b.HasIndex("MessageId");
 
-                    b.ToTable("Attachment");
+                    b.ToTable("Attachments");
                 });
 
             modelBuilder.Entity("Messenger.Entities.Chat", b =>
@@ -72,7 +72,12 @@ namespace Messenger.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
 
                     b.ToTable("Chats");
                 });
@@ -129,6 +134,22 @@ namespace Messenger.Migrations
                     b.ToTable("Messages");
                 });
 
+            modelBuilder.Entity("Messenger.Entities.MessageReadStatus", b =>
+                {
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("MessageId", "UserId");
+
+                    b.ToTable("MessagesReadStatuses");
+                });
+
             modelBuilder.Entity("Messenger.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -145,11 +166,15 @@ namespace Messenger.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("UserName")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -162,11 +187,20 @@ namespace Messenger.Migrations
                 {
                     b.HasOne("Messenger.Entities.Message", "Message")
                         .WithMany("Attachments")
-                        .HasForeignKey("MessageId")
+                        .HasForeignKey("MessageId");
+
+                    b.Navigation("Message");
+                });
+
+            modelBuilder.Entity("Messenger.Entities.Chat", b =>
+                {
+                    b.HasOne("Messenger.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Message");
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("Messenger.Entities.ChatMember", b =>
