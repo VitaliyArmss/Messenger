@@ -1,4 +1,4 @@
-﻿using Messenger.DTO.Users;
+using Messenger.DTO.Users;
 
 namespace Messenger.Services
 {
@@ -8,7 +8,9 @@ namespace Messenger.Services
 
         Task<UserResponse?> GetByIdAsync(Guid id);
 
-        Task<IEnumerable<UserResponse>> SearchAsync(string? query, int page, int pagesize);
+        Task<IEnumerable<UserResponse>> GetContactsAsync(Guid userId);
+
+        Task<IEnumerable<UserResponse>> SearchAsync(string? query, int page, int pagesize, Guid currentUserId);
 
         Task<UserResponse> UpdateAsync(Guid userId, UpdateUserRequest request);
     }

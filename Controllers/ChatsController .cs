@@ -1,6 +1,4 @@
-﻿// Controllers/ChatsController.cs
 using Messenger.DTO.Chats;
-using Messenger.Entities;
 using Messenger.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -41,13 +39,57 @@ namespace Messenger.Controllers
             }
         }
 
+        [HttpGet("by-user/{userId2:guid}")]
+        public async Task<IActionResult> GetPrivateChat(Guid userId2)
+        {
+            try
+            {
+                var userId1 = GetUserId();
+                var chat = await _chatService.GetPrivateChatAsync(userId1, userId2);
+                return Ok(chat);
+            }
+            catch (Exception ex) when (ex.Message.Contains("не найден"))
+            {
+                return NotFound(new { Message = "Чат не найден" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка получения личного чата с {ChatId}", userId2);
+                return StatusCode(500, new { Message = "Не удалось получить информацию о чате" });
+            }
+        }
+
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetChat(Guid id)
         {
             try
             {
-                var chat = await _chatService.GetChatAsync(id);
+                var userId = GetUserId();
+                var chat = await _chatService.GetChatAsync(id, userId);
                 return Ok(chat);
+            }
+            catch (Exception ex) when (ex.Message.Contains("не найден"))
+            {
+                return NotFound(new { Message = "Чат не найден" });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка получения чата {ChatId}", id);
+                return StatusCode(500, new { Message = "Не удалось получить информацию о чате" });
+            }
+        }
+
+        [HttpGet("{id:guid}/members")]
+        public async Task<IActionResult> GetMembers(Guid id)
+        {
+            try
+            {
+                var members = await _chatService.GetMembersAsync(id);
+                return Ok(members);
             }
             catch (Exception ex) when (ex.Message.Contains("не найден"))
             {
@@ -105,16 +147,17 @@ namespace Messenger.Controllers
         {
             try
             {
-                await _chatService.AddMemberAsync(id, request);
+                var userId = GetUserId();
+                await _chatService.AddMemberAsync(id, request, userId);
                 return NoContent();
             }
             catch (Exception ex) when (ex.Message.Contains("не найден"))
             {
                 return NotFound(new { Message = ex.Message });
             }
-            catch (Exception ex) when (ex.Message.Contains("уже состоит"))
+            catch (UnauthorizedAccessException ex)
             {
-                return Conflict(new { Message = "Пользователь уже состоит в чате" });
+                return StatusCode(StatusCodes.Status403Forbidden, new { Message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -123,22 +166,55 @@ namespace Messenger.Controllers
             }
         }
 
-        [HttpDelete("{id:guid}/members/{userId:guid}")]
-        public async Task<IActionResult> RemoveMember(Guid id, Guid userId)
+        [HttpDelete("{id:guid}/members/{targetId:guid}")]
+        public async Task<IActionResult> RemoveMember(Guid id, Guid targetId)
         {
             try
             {
-                await _chatService.RemoveMemberAsync(id, userId);
+                var userId = GetUserId();
+                await _chatService.RemoveMemberAsync(id, userId, targetId);
                 return NoContent();
+            }
+            catch (Exception ex) when (ex.Message.Contains("Чат не найден"))
+            {
+                return NotFound(new { Message = "Чат не найден" });
             }
             catch (Exception ex) when (ex.Message.Contains("не найден"))
             {
                 return NotFound(new { Message = "Пользователь не найден в чате" });
             }
+            catch (Exception ex) when (ex.Message.Contains("не является владельцем"))
+            {
+                return Forbid();
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка удаления пользователя из чата {ChatId}", id);
                 return StatusCode(500, new { Message = "Не удалось удалить пользователя из чата" });
+            }
+        }
+
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> UpdateGroup(Guid id, [FromForm] UpdateGroupRequest request)
+        {
+            try
+            {
+                var userId = GetUserId();
+                var updated = await _chatService.UpdateGroupAsync(id, request, userId);
+                return Ok(updated);
+            }
+            catch (Exception ex) when (ex.Message.Contains("не найден"))
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка обновления группы {ChatId}", id);
+                return StatusCode(500, new { Message = "Не удалось обновить данные группы" });
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿using Messenger.DTO;
+using Messenger.DTO;
 
 namespace Messenger.Services
 {
@@ -11,5 +11,9 @@ namespace Messenger.Services
         Task<AuthResponse> RefreshAsync(RefreshRequest request);
 
         Task LogoutAsync(Guid userId);
+
+        Task<bool> IsEmailUniqueAsync(string email);
+
+        Task<bool> IsUsernameUniqueAsync(string username);
     }
 }

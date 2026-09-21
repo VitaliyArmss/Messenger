@@ -1,6 +1,4 @@
-﻿// Controllers/UsersController.cs
 using Messenger.DTO.Users;
-using Messenger.Entities;
 using Messenger.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +22,22 @@ namespace Messenger.Controllers
 
         private Guid GetUserId() =>
             Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+        [HttpGet("contacts")]
+        public async Task<IActionResult> GetContacts()
+        {
+            try
+            {
+                var userId = GetUserId();
+                var contacts = await _userService.GetContactsAsync(userId);
+                return Ok(contacts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка получения контактов");
+                return StatusCode(500, new { Message = "Не удалось получить список контактов" });
+            }
+        }
 
         [HttpGet("me")]
         public async Task<IActionResult> GetCurrentUser()
@@ -70,7 +84,8 @@ namespace Messenger.Controllers
         {
             try
             {
-                var users = await _userService.SearchAsync(query, page, pageSize);
+                var userId = GetUserId();
+                var users = await _userService.SearchAsync(query, page, pageSize, userId);
                 return Ok(users);
             }
             catch (Exception ex)
@@ -81,7 +96,7 @@ namespace Messenger.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> Update([FromBody] UpdateUserRequest request)
+        public async Task<IActionResult> Update([FromForm] UpdateUserRequest request)
         {
             try
             {

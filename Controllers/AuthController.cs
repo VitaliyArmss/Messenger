@@ -1,10 +1,8 @@
-﻿// Controllers/AuthController.cs
-using Messenger.Entities;
+using Messenger.DTO;
 using Messenger.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using Messenger.DTO;
 
 namespace Messenger.Controllers
 {
@@ -52,7 +50,7 @@ namespace Messenger.Controllers
             catch (Exception ex) when (ex.Message.Contains("не найден"))
             {
                 _logger.LogWarning("Попытка входа с несуществующим email: {Email}", request.Email);
-                return NotFound(new { Message = "Пользователь с таким email не найден" });
+                return NotFound(new { Message = "Неверный email или пароль" });
             }
             catch (Exception ex) when (ex.Message.Contains("Неверный пароль"))
             {
@@ -100,6 +98,26 @@ namespace Messenger.Controllers
                 _logger.LogError(ex, "Ошибка при выходе из системы");
                 return StatusCode(500, new { Message = "Внутренняя ошибка сервера" });
             }
+        }
+
+        [HttpGet("check-email")]
+        public async Task<IActionResult> CheckEmail([FromQuery] string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return BadRequest(new { message = "Email is required" });
+
+            var isUnique = await _authService.IsEmailUniqueAsync(email);
+            return Ok(new { isUnique });
+        }
+
+        [HttpGet("check-username")]
+        public async Task<IActionResult> CheckUsername([FromQuery] string username)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                return BadRequest(new { message = "Username is required" });
+
+            var isUnique = await _authService.IsUsernameUniqueAsync(username);
+            return Ok(new { isUnique });
         }
     }
 }

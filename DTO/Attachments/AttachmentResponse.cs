@@ -1,4 +1,6 @@
-﻿namespace Messenger.DTO.Attachments
+using Messenger.Entities;
+
+namespace Messenger.DTO.Attachments
 {
     public class AttachmentResponse
     {
@@ -11,5 +13,7 @@
         public long Size { get; set; }
 
         public string ContentType { get; set; } = "";
+
+        public FileType Type { get; set; }
     }
 }

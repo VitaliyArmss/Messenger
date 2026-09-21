@@ -1,10 +1,9 @@
-﻿using Messenger.Entities;
+using Messenger.Entities;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Security.Cryptography;
 
 namespace Messenger.Services;
 
@@ -15,6 +14,14 @@ public class JwtService : IJwtService
     public JwtService(IConfiguration configuration)
     {
         _configuration = configuration;
+    }
+
+    public string GenerateRefreshToken()
+    {
+        var randomNumber = new byte[32];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
     }
 
     public JwtResult GenerateToken(User user)
@@ -30,17 +37,14 @@ public class JwtService : IJwtService
             new Claim(ClaimTypes.Email, user.Email)
         };
 
-
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!)
         );
-
 
         var credentials = new SigningCredentials(
             key,
             SecurityAlgorithms.HmacSha256
         );
-
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
@@ -50,7 +54,6 @@ public class JwtService : IJwtService
             signingCredentials: credentials
         );
 
-
         return new JwtResult
         {
             Token = new JwtSecurityTokenHandler()
@@ -59,13 +62,4 @@ public class JwtService : IJwtService
             ExpiresAt = expiresAt
         };
     }
-
-    public string GenerateRefreshToken()
-    {
-        var randomNumber = new byte[32];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomNumber);
-        return Convert.ToBase64String(randomNumber);
-    }
-
 }

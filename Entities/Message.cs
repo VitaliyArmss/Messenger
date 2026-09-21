@@ -10,7 +10,7 @@ namespace Messenger.Entities
 
         public Chat Chat { get; set; } = null!;
 
-        public Guid SenderId { get; set; }
+        public Guid? SenderId { get; set; }
 
         public User Sender { get; set; } = null!;
 
@@ -22,6 +22,7 @@ namespace Messenger.Entities
 
         public bool IsDeleted { get; set; }
 
+        public bool IsSystem { get; set; }
         public ICollection<Attachment> Attachments { get; set; } = [];
     }
 }

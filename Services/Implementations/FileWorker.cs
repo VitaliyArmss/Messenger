@@ -1,4 +1,4 @@
-﻿using Minio;
+using Minio;
 using Minio.DataModel;
 using Minio.DataModel.Args;
 
@@ -14,30 +14,25 @@ public class FileWorker
         _minioClient = minioClient;
     }
 
-    // ==========================
     // Загрузка файла
-    // ==========================
-    public async Task<string> UploadFileAsync(IFormFile file)
+    public async Task<string> UploadFileAsync(IFormFile file, string objectName)
     {
         if (file == null || file.Length == 0)
             throw new ArgumentException("Файл пустой.");
 
         using var stream = file.OpenReadStream();
-
         await _minioClient.PutObjectAsync(
             new PutObjectArgs()
                 .WithBucket(BucketName)
-                .WithObject(file.FileName)
+                .WithObject(objectName) // используем переданное имя
                 .WithStreamData(stream)
                 .WithObjectSize(stream.Length)
                 .WithContentType(file.ContentType));
 
-        return file.FileName;
+        return objectName;
     }
 
-    // ==========================
     // Скачивание файла
-    // ==========================
     public async Task<(Stream Stream, string ContentType, string Name)> DownloadFileAsync(string objectName)
     {
         var memory = new MemoryStream();
@@ -67,9 +62,8 @@ public class FileWorker
         );
     }
 
-    // ==========================
     // Удаление файла
-    // ==========================
+
     public async Task DeleteFileAsync(string objectName)
     {
         await _minioClient.RemoveObjectAsync(

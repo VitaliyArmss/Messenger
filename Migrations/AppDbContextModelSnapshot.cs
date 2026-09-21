@@ -28,19 +28,31 @@ namespace Messenger.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ChatId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsAvatar")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid?>("MessageId")
                         .HasColumnType("uuid");
 
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Url")
                         .IsRequired()
@@ -59,17 +71,22 @@ namespace Messenger.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsGroup")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsInitialised")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("OwnerId")
+                    b.Property<Guid?>("OwnerId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -115,7 +132,10 @@ namespace Messenger.Migrations
                     b.Property<bool>("IsEdited")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid>("SenderId")
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("SenderId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Text")
@@ -145,6 +165,35 @@ namespace Messenger.Migrations
                     b.HasKey("MessageId", "UserId");
 
                     b.ToTable("MessagesReadStatuses");
+                });
+
+            modelBuilder.Entity("Messenger.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("Messenger.Entities.User", b =>
@@ -182,20 +231,16 @@ namespace Messenger.Migrations
 
             modelBuilder.Entity("Messenger.Entities.Attachment", b =>
                 {
-                    b.HasOne("Messenger.Entities.Message", "Message")
+                    b.HasOne("Messenger.Entities.Message", null)
                         .WithMany("Attachments")
                         .HasForeignKey("MessageId");
-
-                    b.Navigation("Message");
                 });
 
             modelBuilder.Entity("Messenger.Entities.Chat", b =>
                 {
                     b.HasOne("Messenger.Entities.User", "Owner")
                         .WithMany()
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("OwnerId");
 
                     b.Navigation("Owner");
                 });
@@ -229,13 +274,22 @@ namespace Messenger.Migrations
 
                     b.HasOne("Messenger.Entities.User", "Sender")
                         .WithMany()
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SenderId");
 
                     b.Navigation("Chat");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("Messenger.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("Messenger.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Messenger.Entities.Chat", b =>
