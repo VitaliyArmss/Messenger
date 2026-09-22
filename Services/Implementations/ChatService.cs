@@ -420,7 +420,7 @@ namespace Messenger.Services
 
                 // Имя и аватар собеседника
                 Name = otherMember?.User?.Name ?? "Чат",
-                UserName = otherMember?.User?.Name ?? string.Empty,
+                UserName = otherMember?.User?.UserName ?? string.Empty,
                 AvatarUrl = otherMember?.User?.AvatarUrl,
 
                 OwnerId = chat.OwnerId,
